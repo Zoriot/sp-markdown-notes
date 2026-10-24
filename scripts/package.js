@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { zipSync } = require('fflate');
 
 const ROOT_DIR = path.join(__dirname, '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
@@ -23,18 +23,14 @@ if (fs.existsSync(archivePath)) {
   fs.unlinkSync(archivePath);
 }
 
-const result = spawnSync(
-  'zip',
-  ['-qr', archivePath, '.'],
-  { cwd: DIST_DIR, stdio: 'inherit' },
-);
+const files = {};
+for (const fileName of fs.readdirSync(DIST_DIR)) {
+  const filePath = path.join(DIST_DIR, fileName);
+  if (fs.statSync(filePath).isFile()) {
+    files[fileName] = fs.readFileSync(filePath);
+  }
+}
 
-if (result.error) {
-  console.error(`Packaging failed: ${result.error.message}`);
-  process.exit(1);
-}
-if (result.status !== 0) {
-  process.exit(result.status ?? 1);
-}
+fs.writeFileSync(archivePath, zipSync(files, { level: 9 }));
 
 console.log(`Package complete: ${path.relative(ROOT_DIR, archivePath)}`);

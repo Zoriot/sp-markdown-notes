@@ -307,13 +307,14 @@ const refresh = async (): Promise<void> => {
     state.error = error instanceof Error ? error.message : String(error);
     state.status = '';
   } finally {
+    const shouldRefresh = state.queuedRefresh;
+    state.isLoading = false;
+    state.queuedRefresh = false;
     if (requestedRootPath === state.config.rootPath.trim()) {
-      state.isLoading = false;
       render();
-      if (state.queuedRefresh) {
-        state.queuedRefresh = false;
-        void refresh();
-      }
+    }
+    if (shouldRefresh) {
+      void refresh();
     }
   }
 };
