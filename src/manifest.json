@@ -4,7 +4,7 @@
   "name": "Markdown Notes",
   "version": "0.1.0",
   "description": "Read-only markdown notes from a local folder, Obsidian-style.",
-  "author": "Super Productivity community",
+  "author": "Zoriot",
   "homepage": "https://github.com/Zoriot/sp-markdown-notes",
   "repository": {
     "type": "git",
