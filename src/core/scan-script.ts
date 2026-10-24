@@ -227,30 +227,36 @@ const emptyFailure = (error, resolvedPath) => ({
 try {
   const rootPath = path.resolve(rootInput);
   const notePath = path.resolve(noteInput);
-  const relative = path.relative(rootPath, notePath);
 
   if (!rootInput || !noteInput) {
     return emptyFailure('Missing root path or note path', notePath);
-  }
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    return emptyFailure('Note path is outside the selected markdown root', notePath);
   }
   if (!isMarkdownFile(notePath)) {
     return emptyFailure('Note path is not a markdown file', notePath);
   }
 
-  const rootStats = fs.statSync(rootPath);
+  const canonicalRootPath = fs.realpathSync(rootPath);
+  const canonicalNotePath = fs.realpathSync(notePath);
+  const relative = path.relative(canonicalRootPath, canonicalNotePath);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    return emptyFailure('Note path is outside the selected markdown root', notePath);
+  }
+
+  const rootStats = fs.statSync(canonicalRootPath);
   if (!rootStats.isDirectory()) {
     return emptyFailure('Root path is not a directory', notePath);
   }
 
-  const stats = fs.statSync(notePath);
-  if (!stats.isFile()) {
-    return emptyFailure('Note path is not a file', notePath);
-  }
-
-  const fd = fs.openSync(notePath, 'r');
+  const fd = fs.openSync(
+    canonicalNotePath,
+    fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
+  );
   try {
+    const stats = fs.fstatSync(fd);
+    if (!stats.isFile()) {
+      return emptyFailure('Note path is not a file', notePath);
+    }
+
     const bytesToRead = Math.min(stats.size, MAX_READ_BYTES);
     const buffer = new Uint8Array(bytesToRead);
     const bytesRead = fs.readSync(fd, buffer, 0, bytesToRead, 0);

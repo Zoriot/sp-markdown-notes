@@ -213,6 +213,22 @@ test('read script rejects markdown paths outside the selected root', async () =>
   assert.match(result.error ?? '', /outside/i);
 });
 
+test('read script rejects markdown symlinks that resolve outside the selected root', async () => {
+  if (process.platform === 'win32') return;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sp-md-notes-'));
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sp-md-outside-'));
+  const outsidePath = path.join(outsideRoot, 'Outside.md');
+  const linkedPath = path.join(root, 'Linked.md');
+  fs.writeFileSync(outsidePath, '# Outside');
+  fs.symlinkSync(outsidePath, linkedPath);
+
+  const result = await runReadScript(root, linkedPath);
+
+  assert.equal(result.success, false);
+  assert.equal(result.content, '');
+  assert.match(result.error ?? '', /outside/i);
+});
+
 test('read script truncates large selected notes', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sp-md-notes-'));
   const notePath = path.join(root, 'Large.md');
