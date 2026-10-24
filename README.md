@@ -14,11 +14,17 @@ npm install
 npm run lint
 npm test
 npm run build
+npm run package
 ```
 
-The generated ZIP is assembled from `dist/` by the normal plugin packaging
-workflow. The plugin requires the desktop app and explicit `nodeExecution`
-consent; it cannot read local folders in the web or mobile app.
+`npm run package` builds the plugin and creates
+`markdown-notes-<version>.zip` with `manifest.json` at the archive root. The
+plugin requires the desktop app and explicit `nodeExecution` consent; it cannot
+read local folders in the web or mobile app.
+
+The iframe UI is packaged as a self-contained `index.html`: the build inlines
+the bundled application JavaScript, so it does not depend on external assets or
+runtime-served files.
 
 ## Install and use
 
@@ -35,5 +41,13 @@ device-local browser storage; they are not synced. Markdown contents are
 read-only: the plugin does not create, update, or delete notes or Super
 Productivity tasks.
 
-Plugins are executable code and are not a strong security boundary. Review the
-source and back up your data before installing community plugins.
+Plugins are executable code and are not a strong security boundary. Host-side
+`plugin.js` runs in the app renderer without a strong sandbox. Iframe plugins
+use the filtered plugin API as their intended interface, but the iframe remains
+same-origin with the host, so that API is not a hard security boundary.
+Desktop plugins requesting `nodeExecution` can run native code only after an
+explicit consent dialog; granting it gives the plugin full access under your
+user account. The iframe waits for `PluginAPI.onReady()` before starting its
+desktop filesystem calls and falls back for older hosts that do not provide
+that hook. Review the source and back up your data before installing community
+plugins.

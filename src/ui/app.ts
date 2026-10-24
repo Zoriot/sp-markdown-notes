@@ -23,6 +23,10 @@ declare global {
   }
 }
 
+type PluginApiWithReady = PluginAPI & {
+  onReady?: (callback: () => void | Promise<void>) => void;
+};
+
 const AUTO_REFRESH_MS = 30000;
 const SEARCH_DEBOUNCE_MS = 150;
 
@@ -59,7 +63,7 @@ interface AppState {
   queuedRefresh: boolean;
 }
 
-const api = window.PluginAPI;
+const api = window.PluginAPI as PluginApiWithReady | undefined;
 const appEl = document.getElementById('app');
 
 if (!appEl) {
@@ -647,13 +651,17 @@ const render = (): void => {
   renderContent();
 };
 
-const init = async (): Promise<void> => {
+const initialize = async (): Promise<void> => {
   state.config = loadMarkdownNotesConfig();
   render();
   refreshIfIdle();
 };
 
-void init();
+if (api?.onReady) {
+  api.onReady(initialize);
+} else {
+  void initialize();
+}
 window.setInterval(() => {
   if (document.visibilityState === 'visible' && state.config.rootPath.trim()) {
     refreshIfIdle();
