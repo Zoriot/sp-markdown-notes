@@ -34,6 +34,16 @@ runtime-served files.
    Plugin File**.
 4. Enable the plugin and allow `nodeExecution` only if you trust the source.
 5. Open the plugin side panel and enter the local Markdown or Obsidian folder.
+   Enabling the plugin stays on the task list; the panel button opens the notes.
+
+The folder is scanned when you choose **Load** or **Refresh**. The panel does
+not rescan on a timer or when it gains focus, so a path or search you are
+still typing stays put. On the desktop app, scripts that only use Node's
+`fs` and `path` modules run in the main process and are limited to about 5
+seconds. The `timeout` in `nodeScriptConfig` applies when the host runs the
+script in a child process. A vault with thousands of notes, or a folder on a
+network drive, can block the app for that scan and then fail. Use **Refresh**
+after files change.
 
 The plugin is desktop-only. The web and mobile apps cannot grant access to a
 local folder. The configured folder and folder-to-project mappings stay in
@@ -51,3 +61,13 @@ user account. The iframe waits for `PluginAPI.onReady()` before starting its
 desktop filesystem calls and falls back for older hosts that do not provide
 that hook. Review the source and back up your data before installing community
 plugins.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+This plugin is derived from the Markdown Notes folder viewer by
+[Symon Baikov](https://github.com/symonbaikov), proposed in
+[super-productivity/super-productivity#8067](https://github.com/super-productivity/super-productivity/pull/8067).
+The original pull request was not merged. Super Productivity itself is MIT
+licensed.

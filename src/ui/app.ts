@@ -27,7 +27,6 @@ type PluginApiWithReady = PluginAPI & {
   onReady?: (callback: () => void | Promise<void>) => void;
 };
 
-const AUTO_REFRESH_MS = 30000;
 const SEARCH_DEBOUNCE_MS = 150;
 
 interface PreviewCacheEntry {
@@ -109,7 +108,7 @@ const saveConfig = async (): Promise<void> => {
     saveMarkdownNotesConfig(state.config);
   } catch {
     state.error = 'Failed to save markdown notes settings.';
-    render();
+    renderStatus();
   }
 };
 
@@ -277,7 +276,7 @@ const refresh = async (): Promise<void> => {
   state.queuedRefresh = false;
   state.error = null;
   state.status = 'Scanning markdown files...';
-  render();
+  renderStatus();
 
   try {
     state.projects = await loadProjects();
@@ -286,6 +285,7 @@ const refresh = async (): Promise<void> => {
       return;
     }
     state.config.rootPath = result.rootPath;
+    syncRootPathInput(requestedRootPath);
     state.notes = result.notes;
     state.scanErrors = result.errors;
     state.scannedAt = result.scannedAt;
@@ -511,7 +511,7 @@ const renderGroup = (group: MarkdownNoteGroup): HTMLElement => {
     }
     void saveConfig();
     refreshGroups();
-    render();
+    renderContent();
   });
 
   header.append(title);
@@ -563,6 +563,13 @@ const renderPreview = (container: HTMLElement): void => {
   }
 };
 
+const syncRootPathInput = (requestedRootPath: string): void => {
+  const rootInput = document.getElementById('rootPath') as HTMLInputElement | null;
+  if (!rootInput) return;
+  if (rootInput.value.trim() !== requestedRootPath) return;
+  rootInput.value = state.config.rootPath;
+};
+
 const renderContent = (): void => {
   const listEl = document.getElementById('list') as HTMLElement | null;
   const previewEl = document.getElementById('preview') as HTMLElement | null;
@@ -584,7 +591,9 @@ const renderContent = (): void => {
   renderPreview(previewEl);
 };
 
-const render = (): void => {
+let shellMounted = false;
+
+const mountShell = (): void => {
   appEl.innerHTML = `
     <div class="shell">
       <form class="config" id="configForm">
@@ -608,13 +617,11 @@ const render = (): void => {
 
   const rootInput = document.getElementById('rootPath') as HTMLInputElement;
   const searchInput = document.getElementById('search') as HTMLInputElement;
-  const statusEl = document.getElementById('status') as HTMLElement;
   const formEl = document.getElementById('configForm') as HTMLFormElement;
   const refreshBtn = document.getElementById('refreshBtn') as HTMLButtonElement;
 
   rootInput.value = state.config.rootPath;
   searchInput.value = state.search;
-  refreshBtn.disabled = state.isLoading;
 
   formEl.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -634,6 +641,17 @@ const render = (): void => {
     }, SEARCH_DEBOUNCE_MS);
   });
 
+  shellMounted = true;
+};
+
+const renderStatus = (): void => {
+  const statusEl = document.getElementById('status');
+  const refreshBtn = document.getElementById('refreshBtn') as HTMLButtonElement | null;
+  if (!statusEl || !refreshBtn) return;
+
+  refreshBtn.disabled = state.isLoading;
+  clearEl(statusEl);
+
   if (!api?.executeNodeScript) {
     statusEl.textContent =
       'Local markdown folder access is available only in the desktop app.';
@@ -648,7 +666,13 @@ const render = (): void => {
       : '';
     statusEl.append(text(`${state.status}${scannedAt}${scanErrors}`));
   }
+};
 
+const render = (): void => {
+  if (!shellMounted) {
+    mountShell();
+  }
+  renderStatus();
   renderContent();
 };
 
@@ -663,14 +687,3 @@ if (api?.onReady) {
 } else {
   void initialize();
 }
-window.setInterval(() => {
-  if (document.visibilityState === 'visible' && state.config.rootPath.trim()) {
-    refreshIfIdle();
-  }
-}, AUTO_REFRESH_MS);
-
-window.addEventListener('focus', () => {
-  if (state.config.rootPath.trim()) {
-    refreshIfIdle();
-  }
-});

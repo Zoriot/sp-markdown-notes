@@ -2,7 +2,7 @@
   "id": "markdown-notes",
   "manifestVersion": 1,
   "name": "Markdown Notes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Read-only markdown notes from a local folder, Obsidian-style.",
   "author": "Zoriot",
   "homepage": "https://github.com/Zoriot/sp-markdown-notes",
